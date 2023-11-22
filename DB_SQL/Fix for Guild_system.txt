@@ -1,0 +1,61 @@
+USE [pangya]
+GO
+
+/****** Object:  StoredProcedure [pangya].[ProcGetGuilds]    Script Date: 22/11/2023 12:16:40 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [pangya].[ProcGetGuilds]
+    @PAGE INT = 1,
+    @SEARCH NVARCHAR(255) = '%'
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @LINHAS BIGINT = 0;
+
+    -- Total de linhas da consulta
+    SELECT @LINHAS = COUNT_BIG(GUILD_UID)
+    FROM pangya.pangya_guild a
+    WHERE GUILD_NAME LIKE '%' + @SEARCH + '%'
+    AND (a.GUILD_STATE NOT IN (4, 5) OR a.GUILD_CLOSURE_DATE IS NULL OR GETDATE() < a.GUILD_CLOSURE_DATE);
+
+    SELECT @LINHAS AS LINHAS, -- 0
+           A.GUILD_UID,-- 1
+           A.GUILD_NAME,-- 2
+           C.GUILD_TOTAL_MEMBER,-- 3
+           ISNULL(A.GUILD_MARK_IMG, N'guildmark') AS GUILD_MARK_IMG,-- 4
+           A.GUILD_INFO,-- 5
+           A.GUILD_PANG,---- 6
+           A.GUILD_POINT,-- 7
+           A.GUILD_LEADER AS GUILD_LEADER_UID,-- 8
+           B.NICK AS GUILD_LEADER_NICKNAME, -- 9
+           A.GUILD_REG_DATE AS CREATE_DATE -- 10
+    FROM (
+        SELECT GUILD_UID,
+               GUILD_NAME,
+               GUILD_INFO,
+               GUILD_LEADER,
+               GUILD_POINT,
+               GUILD_PANG,
+               GUILD_REG_DATE,
+               ISNULL(GUILD_MARK_IMG, N'guildmark') AS GUILD_MARK_IMG,
+               ROW_NUMBER() OVER (ORDER BY GUILD_UID DESC) AS RowNum
+        FROM pangya.pangya_guild
+        WHERE GUILD_NAME LIKE '%' + @SEARCH + '%'
+    ) A
+    LEFT JOIN pangya.account B ON A.GUILD_LEADER = B.UID
+    OUTER APPLY (
+        SELECT COUNT(*) AS GUILD_TOTAL_MEMBER
+        FROM pangya.pangya_guild_member
+        WHERE A.GUILD_UID = GUILD_UID AND MEMBER_STATE_FLAG < 9
+    ) C
+    WHERE A.RowNum BETWEEN (@PAGE - 1) * 12 + 1 AND @PAGE * 12;
+END
+GO
+
+

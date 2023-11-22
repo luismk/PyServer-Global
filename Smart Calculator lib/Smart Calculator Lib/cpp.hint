@@ -1,2 +1,0 @@
-#define SMARTCALCULATORLIB_API __declspec(dllexport)
-#define SMARTCALCULATORLIB_API __declspec(dllimport)

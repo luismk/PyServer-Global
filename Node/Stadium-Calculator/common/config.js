@@ -1,1 +1,0 @@
-exports.TOKEN = 'Seu Token';

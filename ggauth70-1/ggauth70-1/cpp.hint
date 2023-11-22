@@ -1,2 +1,0 @@
-#define GGAUTH701_API __declspec(dllexport)
-#define GGAUTH701_API __declspec(dllimport)
